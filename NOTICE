@@ -1,0 +1,12 @@
+CIRCE method implementation
+Copyright 2026 Anonymous Authors
+
+Portions of src/circe/prompts.py and src/circe/legacy_parsing.py are adapted
+from the Apache-2.0-licensed Chain-of-Embedding source project:
+https://github.com/Alsace08/Chain-of-Embedding
+
+These files have been modified to integrate the package interfaces, input
+formats, and evaluation policies. The Apache License, Version 2.0, is included
+in LICENSE.
+
+Third-party libraries and model checkpoints retain their respective licenses.

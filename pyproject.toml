@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "circe-method"
+version = "0.4.0"
+description = "Component-aware correctness scoring from one language-model response"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = ["numpy>=1.24,<3"]
+
+[project.optional-dependencies]
+inference = ["torch>=2.5,<2.7", "transformers==4.57.1"]
+
+[project.scripts]
+circe-infer = "circe.cli:infer_main"
+circe-evaluate = "circe.cli:evaluate_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

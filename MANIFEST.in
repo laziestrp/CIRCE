@@ -1,0 +1,3 @@
+include main.py evaluate.py requirements.txt weights.example.json
+recursive-include docs *.md
+recursive-include tests *.py
