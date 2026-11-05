@@ -4,8 +4,6 @@ End-to-end implementation of a training-free correctness score for a single lang
 
 This anonymous review package includes the complete main-method workflow: local checkpoint loading, JSONL data reading, dataset prompts, greedy inference, attention/FFN/counterfactual extraction, score computation, answer parsing, and confidence evaluation. Model weights, benchmark data, stored responses, supplementary experiments, and cluster job scripts are supplied separately.
 
-The workflow separates input preparation, model inference, component collection, score computation, and answer evaluation. Each stage has a Python interface and a command-line entry point where appropriate.
-
 CIRCE uses a given set of weights to combine CIC, GS, and NLL into a score. The coefficients are supplied through α and λ in the configuration file. This release contains `xxx` placeholders rather than numerical coefficient values; scoring requires a completed configuration.
 
 ## Installation
@@ -63,25 +61,11 @@ The evaluation command reads those saved responses, assigns deterministic answer
 
 Multiple completed runs can be evaluated together with `--runs RUN1 RUN2 ...`. Each model/dataset group contributes equally to the macro. Across models within one dataset, IDs/questions/references must match exactly for the shared paired bootstrap. RACE uses passage clusters. A single-class group remains undefined, and insufficient complete draws suppress unsupported confidence intervals.
 
-## Output artifacts
+## Outputs
 
-```text
-runs/model_gsm8k/
-  run.json                    IDs, model tag, prompt/version, supplied configuration
-  generations/00000000.json   Original prompt/output IDs and raw generation
-  records/00000000.json       Same response plus CIC, GS, NLL, CIRCE, and mask
-  features/00000000.npz       Optional pooled x, attention, FFN, m0, q, hidden chain
-  completion.json            Written only after every requested example is saved
+Inference preserves the original prompt/output IDs, response text, scoring configuration, and component scores. `--save-features` additionally exports response-pooled vectors, not full per-token activations. Evaluation exports correctness labels, ranking metrics, and supported confidence intervals.
 
-runs/eval_gsm8k/
-  labels.csv                 Every answer's label, extraction reason, format/termination
-  metrics.csv                Per-model/dataset scores, accuracy, and class counts
-  macro_metrics.csv          Equal-group macro metrics and supported 95% intervals
-  bootstrap.npz              Optional shared draws and their complete-draw mask
-  summary.json               Exact metric definitions, policy, counts, and CI support
-```
-
-Feature files contain response-pooled vectors, not every token's full activation tensor. Generation envelopes are written before score finalization; if a numerical gate fails, the raw response is retained and `failure.json` records the interruption. Failed/incomplete runs cannot enter full evaluation. Each command requires a new output directory and does not overwrite existing results or regenerate saved answers automatically.
+Original responses are retained even if a numerical check fails. Incomplete runs cannot enter full evaluation. Each command requires a new output directory and does not overwrite existing results or regenerate saved answers automatically.
 
 ## Method
 
@@ -107,7 +91,7 @@ S    = (1 - λ) * (α * b(CIC) + (1 - α) * b(GS)) + λ / (1 + NLL)
 
 α controls the CIC/GS balance and λ controls the likelihood contribution. The supplied coefficients are used directly in this expression, together with the response's CIC, GS, and NLL components. Reference answers do not enter the score calculation. `load_weights` reads the configuration; `Weights.from_parameters(alpha=..., lambda_=...)` provides the equivalent Python interface. Replacing the last term by `-λ*NLL/(1+NLL)` subtracts the same constant λ from every response; it preserves ordering but changes the scalar value.
 
-`run.json` records the coefficients used for CIRCE scoring. Evaluation checks the stored scores against those coefficients and requires the same weight set across runs. This metadata allows the score calculation to be checked consistently. Runtime artifacts can contain the supplied values; keep them local if coefficient disclosure is not intended. The release template does not include numerical experimental weights.
+The coefficients used for CIRCE scoring are recorded with each run. Evaluation checks the stored scores against those coefficients and requires the same weight set across runs. Runtime artifacts can contain the supplied values; keep them local if coefficient disclosure is not intended. The release template does not include numerical experimental weights.
 
 ## Token and hidden-state conventions
 
@@ -161,27 +145,6 @@ print(result.scores.score, result.scores.cic, result.scores.gs, result.scores.me
 `GreedyResult` contains the original output IDs, decoded text, EOS termination flag, and `CirceScore`. A length-limited response remains in the returned result with `terminated=False`; the library does not judge answer correctness. The prompt plus requested token budget must fit the model context.
 
 For integration into an existing greedy generation call, use `with CirceCapture(model, weights=weights) as capture: ...`, then call `capture.finalize(generated_ids)`. Exclude prompt IDs from `generated_ids`. Use cached generation with a single unpadded prompt and neutral logits processing. The capture validates exact raw-greedy alignment, so a sampled or processed token sequence can raise an error. Hooks are removed on normal completion and on exceptions. Each capture is single-use. `capture.pooled_features()` exposes the within-response pooled vectors for inspection.
-
-## Files
-
-| File | Purpose |
-| --- | --- |
-| `main.py` / `evaluate.py` | Inference and evaluation entry points |
-| `src/circe/models.py` | Local FP32/eager checkpoint and tokenizer loading |
-| `src/circe/data.py` | Canonical and language-keyed JSONL adapters |
-| `src/circe/prompts.py` | Main-experiment prompt templates and chat tokenization |
-| `src/circe/inference.py` | Full inference and artifact-saving workflow |
-| `src/circe/scoring.py` | CIC, GS, bounded transform, and explicitly configured fusion |
-| `weights.example.json` | Placeholder α/λ configuration; replace `xxx` locally before use |
-| `src/circe/capture.py` | Attention/FFN hooks and local counterfactual evaluation |
-| `src/circe/generation.py` | Library interface for one greedy response |
-| `src/circe/labels.py` / `numeric_answers.py` | Main final-answer and strict-format correctness rules |
-| `src/circe/legacy_parsing.py` | Historical syntactic answer parser |
-| `src/circe/metrics.py` / `evaluation.py` | Metrics, coverage checks, paired bootstrap, and tables |
-| `src/circe/cli.py` | Portable command-line arguments |
-| `src/circe/__init__.py` | Public API; arithmetic imports without inference dependencies |
-| `tests/` | Arithmetic, input/prompt/label, and local-checkpoint integration checks |
-| `docs/DATA_FORMAT.md` | Data schema, prompt assembly, parsing and metric definitions |
 
 ## Implementation checks
 

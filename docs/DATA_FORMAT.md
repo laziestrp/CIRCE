@@ -32,7 +32,7 @@ Already formatted inputs can use `en` containing the complete question/passage/o
 
 Supported names: `gsm8k`, `math`, `commonsenseqa`, `mmlu`, `belebele`, `theoremqa`, `logiqa2`, `mmlu_pro`, `race_high`. Input aliases `mmmlu`, `mgsm`, and `gsm8k_reused` map to their corresponding adapter. Dataset names do not download data, choose a split, or select a test subset.
 
-The original-six prompt templates are retained in `circe/prompts.py`. The three extension datasets use the fixed general multiple-choice wrapper with every original option. The MATH template preserves the historical literal `\boxed{{}}` instruction. A supplied `prompt` takes precedence; it is saved with its actual token IDs. Formatting already assembled question text twice changes the prompt, so use either structured fields or a complete preformatted question.
+Dataset-specific prompts are used for the original six datasets. The three extension datasets use the fixed general multiple-choice wrapper with every original option. The MATH template preserves the historical literal `\boxed{{}}` instruction. A supplied `prompt` takes precedence; it is saved with its actual token IDs. Formatting already assembled question text twice changes the prompt, so use either structured fields or a complete preformatted question.
 
 `--start` and `--limit` use input order. No correctness labels or scores choose examples. To reproduce a published subset, prepare a file with its exact IDs/order and explicit prompts, rather than treating an arbitrary range as that subset.
 
@@ -46,7 +46,7 @@ Inference requires `--weights path/to/weights.json`. The shipped template is:
 
 Replace each placeholder locally with a numeric α or λ in `[0, 1]`. CIRCE uses these supplied weights to combine the response components into a score. The same weight set applies to every model/dataset group. No numerical experimental weights or default fusion configuration are bundled, and an unresolved placeholder is invalid.
 
-`run.json` records the CIC, GS, and likelihood coefficients used for scoring. Evaluation recomputes CIRCE with those recorded coefficients, checks consistency across runs, and includes the configuration in the local evaluation summary. The recorded configuration supports score and consistency verification. Runtime artifacts can disclose the supplied values and are not intended to be committed. Reproducing a particular coefficient configuration requires its corresponding values.
+Run metadata records the CIC, GS, and likelihood coefficients used for scoring. Evaluation recomputes CIRCE with those recorded coefficients and checks consistency across runs. Runtime artifacts can disclose the supplied values and are not intended to be committed. Reproducing a particular coefficient configuration requires its corresponding values.
 
 ## Answer correctness policies
 
@@ -70,7 +70,7 @@ Every requested `(model,dataset,id)` must have exactly one label, with no extra 
 
 ## Ranking metrics and intervals
 
-Correct answers are positive. `metrics.csv` reports AUROC, correct-positive average precision (`ap`), empirical FPR95, and accuracy/counts for CIRCE and its CIC/GS/negative-NLL components. All confidence directions are fixed as higher = more likely correct. FPR95 is the FPR at the first observed threshold attaining at least 95% TPR; lower FPR95 is better. Ties are grouped before computing curves.
+Correct answers are positive. Evaluation reports AUROC, correct-positive average precision (`ap`), empirical FPR95, and accuracy/counts for CIRCE and its CIC/GS/negative-NLL components. All confidence directions are fixed as higher = more likely correct. FPR95 is the FPR at the first observed threshold attaining at least 95% TPR; lower FPR95 is better. Ties are grouped before computing curves.
 
 AP and empirical FPR95 are distinct from trapezoidal PR area and interpolated FPR95. Use consistent definitions when comparing numerical results.
 
