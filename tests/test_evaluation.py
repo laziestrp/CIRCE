@@ -88,13 +88,13 @@ class EvaluationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "cross-model examples"):
                 evaluate_runs([one, two], root / "bad", bootstrap=0)
 
-    def test_different_frozen_configurations_rejected(self):
+    def test_different_supplied_configurations_rejected(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             other = Weights(*np.random.default_rng(41).dirichlet(np.ones(3)))
             one = synthetic_run(root, "one")
             two = synthetic_run(root, "two", weights=other)
-            with self.assertRaisesRegex(ValueError, "same frozen fusion weights"):
+            with self.assertRaisesRegex(ValueError, "same supplied fusion weights"):
                 evaluate_runs([one, two], root / "bad", bootstrap=0)
 
     def test_recorded_configuration_and_scores_are_validated(self):
@@ -111,7 +111,7 @@ class EvaluationTests(unittest.TestCase):
             value = json.loads(path.read_text())
             value["weights"]["cic"] = "xxx"
             path.write_text(json.dumps(value), encoding="utf-8")
-            with self.assertRaisesRegex(ValueError, "valid frozen fusion configuration"):
+            with self.assertRaisesRegex(ValueError, "valid supplied fusion configuration"):
                 load_run(run)
 
 

@@ -53,7 +53,7 @@ def load_run(path, policy="final", labels=None):
     try:
         weights = Weights(**run["weights"])
     except (KeyError, TypeError, ValueError) as error:
-        raise ValueError("the run must record a valid frozen fusion configuration") from error
+        raise ValueError("the run must record a valid supplied fusion configuration") from error
     for kind in ("generations", "records"):
         if {p.name for p in (path / kind).glob("*.json")} != expected:
             raise ValueError(f"{kind} coverage differs from the declared inputs")
@@ -106,14 +106,14 @@ def evaluate_runs(run_paths, output, *, policy="final", labels_path=None,
         raise ValueError("bootstrap draws must be nonnegative")
     labels = external_labels(labels_path)
     groups, used, systems, reference = [], set(), set(), {}
-    frozen_weights = None
+    shared_weights = None
     for path in run_paths:
         run, rows, label_keys = load_run(path, policy, labels)
         weights = Weights(**run["weights"])
-        if frozen_weights is None:
-            frozen_weights = weights
-        elif weights != frozen_weights:
-            raise ValueError("all runs must use the same frozen fusion weights")
+        if shared_weights is None:
+            shared_weights = weights
+        elif weights != shared_weights:
+            raise ValueError("all runs must use the same supplied fusion weights")
         key = (run["model"], run["dataset"])
         if key in systems:
             raise ValueError("duplicate model/dataset run")
@@ -190,7 +190,7 @@ def evaluate_runs(run_paths, output, *, policy="final", labels_path=None,
     summary = {
         "status": "EVALUATED", "groups": len(groups), "records": len(label_rows),
         "methods": list(METHODS), "metrics": list(METRICS), "label_policy": "external" if labels else policy,
-        "fusion_weights": asdict(frozen_weights),
+        "fusion_weights": asdict(shared_weights),
         "label_version": LABEL_VERSION, "bootstrap_seed": seed, "bootstrap_draws": bootstrap,
         "complete_draws": int(complete.sum()), "macro_ci_supported": ci_supported,
         "macro": [{k: float(v) if isinstance(v, np.floating) else v for k, v in r.items()} for r in macro_rows],

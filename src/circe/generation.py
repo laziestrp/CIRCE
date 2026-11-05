@@ -36,7 +36,8 @@ def score_greedy(
     """Generate and score one unpadded prompt, preserving raw greedy alignment.
 
     Caller supplies the model, tokenizer, and chat-template input IDs. No
-    checkpoint/data loading, label parsing, fitting, or filesystem I/O occurs.
+    checkpoint/data loading, label parsing, or filesystem I/O occurs. The
+    given weight set is used to compute CIRCE from the captured components.
     on_generation(envelope), when supplied, runs before score finalization so
     the caller can preserve original token IDs even if a numerical gate fails.
     """

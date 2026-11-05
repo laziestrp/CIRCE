@@ -2,7 +2,7 @@
 
 from .scoring import CirceScore, Weights, bounded, fuse, load_weights, score_features
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __all__ = [
     "CirceScore", "Weights", "bounded", "fuse", "load_weights",
     "score_features", "CirceCapture", "GreedyResult", "score_greedy",

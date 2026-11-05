@@ -41,7 +41,7 @@ class Weights:
 
 
 def load_weights(path) -> Weights:
-    """Read an explicit frozen configuration; the release provides no defaults."""
+    """Read the supplied weights used to compute the CIRCE score."""
     values = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(values, dict) or set(values) != {"alpha", "lambda"}:
         raise ValueError("weight configuration must contain exactly alpha and lambda")
@@ -74,7 +74,7 @@ def bounded(value):
 
 
 def fuse(cic, gs, mean_nll, weights: Weights):
-    """Fuse scalar or broadcast-compatible component arrays with fixed weights."""
+    """Compute CIRCE from component arrays and the given weight set."""
     nll = _finite(mean_nll, "mean_nll")
     if np.any(nll < 0):
         raise ValueError("mean_nll must be nonnegative")

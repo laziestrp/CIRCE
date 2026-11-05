@@ -44,9 +44,9 @@ Inference requires `--weights path/to/weights.json`. The shipped template is:
 {"alpha":"xxx","lambda":"xxx"}
 ```
 
-Replace each placeholder locally with a numeric α or λ in `[0, 1]` before inference. No experimental coefficient values or default fusion configuration are bundled. The same preselected configuration must apply to every model/dataset group. A placeholder is rejected before model loading and never treated as a number.
+Replace each placeholder locally with a numeric α or λ in `[0, 1]`. CIRCE uses these supplied weights to combine the response components into a score. The same weight set applies to every model/dataset group. No numerical experimental weights or default fusion configuration are bundled, and an unresolved placeholder is invalid.
 
-`run.json` records the actual supplied CIC, GS, and likelihood coefficients for score validation. Evaluation recomputes CIRCE from that record, rejects invalid coefficients and mixed configurations across runs, and records the coefficients in the local evaluation summary. These runtime artifacts may disclose the caller's chosen parameters and are not intended to be committed. Parameter omission from the release limits reproduction of a particular experimental setting until the corresponding configuration is supplied.
+`run.json` records the CIC, GS, and likelihood coefficients used for scoring. Evaluation recomputes CIRCE with those recorded coefficients, checks consistency across runs, and includes the configuration in the local evaluation summary. The recorded configuration supports score and consistency verification. Runtime artifacts can disclose the supplied values and are not intended to be committed. Reproducing a particular coefficient configuration requires its corresponding values.
 
 ## Answer correctness policies
 
@@ -76,4 +76,4 @@ AP and empirical FPR95 are distinct from trapezoidal PR area and interpolated FP
 
 By default, 5,000 bootstrap samples are shared across methods and, within a dataset, across models on the same IDs. RACE samples passage clusters, retaining all questions in each sampled passage. Provide `passage` or `cluster_id` for RACE; otherwise use `--bootstrap 0` for point estimates only. The code refuses a cross-model macro evaluation if the underlying question/reference/cluster alignment differs.
 
-Macro values equally weight every supplied model/dataset group. Single-class groups have undefined ranking metrics (`null` / blank CSV entries); they remain in the macro, making the relevant macro undefined. At least 90% of shared draws must be complete across all supplied groups/methods before macro percentile intervals are published. Unsupported intervals remain null. The package does not treat null metrics as a win or select datasets/weights from these results.
+Macro values equally weight every supplied model/dataset group. Single-class groups have undefined ranking metrics (`null` / blank CSV entries); they remain in the macro, making the relevant macro undefined. At least 90% of shared draws must be complete across all supplied groups/methods before macro percentile intervals are published. Unsupported intervals remain null. Undefined metrics are not treated as wins, and all supplied groups remain in the evaluation.

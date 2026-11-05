@@ -18,7 +18,7 @@ def infer_main(argv=None):
     parser.add_argument("--dataset", type=dataset_name, choices=DATASETS, required=True)
     parser.add_argument("--language", default="en", help="language-keyed input field in JSONL")
     parser.add_argument("--output", required=True, help="new output directory")
-    parser.add_argument("--weights", required=True, help="JSON file with frozen alpha and lambda; replace xxx")
+    parser.add_argument("--weights", required=True, help="JSON file supplying alpha and lambda for CIRCE scoring; replace xxx")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--max-new-tokens", type=int, default=2048)
     parser.add_argument("--start", type=int, default=0)

@@ -6,7 +6,7 @@ This anonymous review package includes the complete main-method workflow: local 
 
 The workflow separates input preparation, model inference, component collection, score computation, and answer evaluation. Each stage has a Python interface and a command-line entry point where appropriate.
 
-Fusion parameter values are not included in this release. Supply a frozen configuration before scoring; the repository contains only a placeholder template, not an executable default. Reproducing a particular experimental configuration requires its corresponding parameters.
+CIRCE uses a given set of weights to combine CIC, GS, and NLL into a score. The coefficients are supplied through α and λ in the configuration file. This release contains `xxx` placeholders rather than numerical coefficient values; scoring requires a completed configuration.
 
 ## Installation
 
@@ -28,7 +28,7 @@ Install a PyTorch build appropriate for your CPU/CUDA environment. The inference
 
 Supply a local Hugging Face checkpoint directory and a local JSONL dataset file. See [data formats, prompts, and label policies](docs/DATA_FORMAT.md) for the full schema and supported adapters. Language-keyed rows with `id`, `en`, and `answer` are also accepted. The checkpoint must include a tokenizer chat template.
 
-Copy `weights.example.json` to a local `weights.json` and replace both `xxx` strings with numeric values for α and λ in `[0, 1]`. Choose one configuration in advance and keep it unchanged across models and datasets. The local `weights.json` is ignored by Git. Missing or unresolved parameters stop the command before model loading; no fallback weights are supplied.
+Copy `weights.example.json` to a local `weights.json` and replace both `xxx` strings with numeric values for α and λ in `[0, 1]`. The same supplied weight set is used across models and datasets. The local `weights.json` is ignored by Git. Unresolved placeholders are invalid, and no fallback weights are supplied.
 
 ```bash
 python main.py \
@@ -51,12 +51,12 @@ python evaluate.py \
 
 The examples use Bash line continuation; on PowerShell, put each command on one line. Installed console commands `circe-infer` and `circe-evaluate` accept the same arguments. Use `--device cpu` explicitly for small CPU checks. `--start` / `--limit` select an input-order range without using labels or scores.
 
-The inference command performs this sequence for every example:
+The command receives the CIRCE weights through `--weights` and uses them directly for scoring. For every example it performs the following operations:
 
 1. Read the question, passage, and all options; build the dataset prompt and apply the checkpoint chat template.
 2. Generate one greedy response while capturing actual attention and FFN outputs and evaluating the local counterfactual FFN.
 3. Preserve the exact prompt/output token IDs, normal/raw decoded text, termination flag, and generation configuration.
-4. Pool the captured vectors, compute CIC/GS/NLL, and save the CIRCE score using the supplied frozen configuration. Correctness labels do not enter these operations.
+4. Pool the captured vectors, compute CIC/GS/NLL, and apply the given weights to calculate and save the CIRCE score. Correctness labels do not enter these operations.
 5. Optionally export the pooled vectors so the score can be independently recomputed without loading the model.
 
 The evaluation command reads those saved responses, assigns deterministic answer labels, and computes accuracy, AUROC, correct-positive AP, and empirical FPR95. `final`, `strict`, and `legacy` parsing policies are documented explicitly; select the evaluation protocol before running it. Existing fixed binary labels can be supplied with `--labels`. Evaluation itself requires no model, GPU, or external service.
@@ -98,16 +98,16 @@ Pool attention and FFN vectors within the response before applying cosine normal
 
 GS is the mean adjacent residual displacement divided by endpoint displacement, minus the mean adjacent angle divided by endpoint angle. Cosine arguments are clipped to `[-1,1]`. Chains with near-zero endpoint distance, endpoint angle, or state norms raise an error rather than receiving an imputed score.
 
-The main-method fusion is:
+Given α and λ, the CIRCE score is calculated as:
 
 ```text
 b(z) = 0.5 * (1 + z / (1 + abs(z)))
 S    = (1 - λ) * (α * b(CIC) + (1 - α) * b(GS)) + λ / (1 + NLL)
 ```
 
-α controls the CIC/GS balance and λ controls the likelihood contribution. Both are caller-supplied constants. No labels, per-dataset fitting, other test responses, cross-response ranks, or reference answers enter this computation. `load_weights` reads the frozen parameters; `Weights.from_parameters(alpha=..., lambda_=...)` provides the equivalent Python interface. Replacing the last term by `-λ*NLL/(1+NLL)` subtracts the same constant λ from every response; it preserves ordering but changes the scalar value.
+α controls the CIC/GS balance and λ controls the likelihood contribution. The supplied coefficients are used directly in this expression, together with the response's CIC, GS, and NLL components. Reference answers do not enter the score calculation. `load_weights` reads the configuration; `Weights.from_parameters(alpha=..., lambda_=...)` provides the equivalent Python interface. Replacing the last term by `-λ*NLL/(1+NLL)` subtracts the same constant λ from every response; it preserves ordering but changes the scalar value.
 
-Inference records the supplied coefficients in local `run.json`; evaluation verifies scores against that record and rejects different configurations across runs. Keep these runtime artifacts local if parameter disclosure is not intended. The arithmetic is unchanged, but this release does not disclose the experimental parameter values.
+`run.json` records the coefficients used for CIRCE scoring. Evaluation checks the stored scores against those coefficients and requires the same weight set across runs. This metadata allows the score calculation to be checked consistently. Runtime artifacts can contain the supplied values; keep them local if coefficient disclosure is not intended. The release template does not include numerical experimental weights.
 
 ## Token and hidden-state conventions
 
