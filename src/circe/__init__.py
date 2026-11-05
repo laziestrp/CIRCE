@@ -2,15 +2,18 @@
 
 from .scoring import CirceScore, Weights, bounded, fuse, load_weights, score_features
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 __all__ = [
     "CirceScore", "Weights", "bounded", "fuse", "load_weights",
-    "score_features", "CirceCapture", "GreedyResult", "score_greedy",
+    "score_features", "score_tensors", "CirceCapture", "GreedyResult", "score_greedy",
 ]
 
 
 def __getattr__(name):
     # Pure score arithmetic can be used without installing PyTorch/Transformers.
+    if name == "score_tensors":
+        from .torch_scoring import score_tensors
+        return score_tensors
     if name == "CirceCapture":
         from .capture import CirceCapture
         return CirceCapture
