@@ -107,6 +107,16 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue((output / "failure.json").is_file())
         self.assertFalse((output / "completion.json").exists())
 
+    def test_generation_without_feature_export(self):
+        from circe import score_greedy
+        ids = self.tokenizer.apply_chat_template(
+            [{"role": "user", "content": "Question"}], tokenize=True,
+            add_generation_prompt=True, return_tensors="pt")
+        with patch("circe.capture.CirceCapture.pooled_features", side_effect=AssertionError("unexpected host export")):
+            result = score_greedy(self.model, self.tokenizer, ids, weights=self.weights, max_new_tokens=4)
+        self.assertIsNone(result.features)
+        self.assertIsInstance(result.scores.score, float)
+
     def test_modified_generation_or_missing_coverage_rejected(self):
         from circe.evaluation import load_run
         output = self.run_cli()

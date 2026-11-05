@@ -6,11 +6,11 @@ activation in the model's generation path. Hooks explicitly return None.
 """
 from __future__ import annotations
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 
-from .scoring import EPS, CirceScore, Weights, score_features
+from .scoring import CirceScore, Weights
+from .torch_scoring import score_tensors
 
 
 class CirceCapture:
@@ -154,19 +154,25 @@ class CirceCapture:
         self.count += 1
         return None
 
-    def pooled_features(self):
-        """Return within-response pooled features as float64 NumPy arrays."""
+    def pooled_tensors(self):
+        """Return pooled float64 tensors on the model device, including q."""
         if self.count == 0 or any(c != self.count for c in self.layer_counts):
             raise ValueError("incomplete token/layer capture")
-        v = (self.sums.double() / self.count).detach().cpu().numpy()
-        chain = (self.chain.double() / self.count).detach().cpu().numpy()
-        if not np.isfinite(v).all() or not np.isfinite(chain).all():
+        v = (self.sums.double() / self.count).detach()
+        chain = (self.chain.double() / self.count).detach()
+        if not bool(torch.isfinite(v).all() & torch.isfinite(chain).all()):
             raise ValueError("nonfinite collected features")
         return {
             "residual_input": v[0], "conditioned_ffn": v[2] - v[3],
             "attention": v[1], "ffn": v[2], "counterfactual_ffn": v[3],
-            "hidden_chain": chain, "mean_nll": float((self.nll_sum / self.count).cpu()),
+            "hidden_chain": chain, "mean_nll": (self.nll_sum / self.count).detach(),
         }
+
+    def pooled_features(self):
+        """Explicit host export for inspection or saving; not used for scoring."""
+        features = self.pooled_tensors()
+        return {key: float(value.cpu()) if key == "mean_nll" else value.cpu().numpy()
+                for key, value in features.items()}
 
     def finalize(self, generated_ids) -> CirceScore:
         ids = [int(token) for token in generated_ids]
@@ -174,8 +180,8 @@ class CirceCapture:
             raise ValueError("generated token count differs from decision count")
         if torch.stack(self.argmax_ids).cpu().tolist() != ids:
             raise ValueError("generated IDs differ from raw greedy decisions")
-        features = self.pooled_features()
-        result = score_features(**{k: features[k] for k in (
-            "attention", "ffn", "counterfactual_ffn", "hidden_chain", "mean_nll",
+        features = self.pooled_tensors()
+        result = score_tensors(**{k: features[k] for k in (
+            "attention", "conditioned_ffn", "hidden_chain", "mean_nll",
         )}, weights=self.weights, max_lag=self.max_lag)
         return CirceScore(result.score, result.cic, result.gs, result.mean_nll, self.count)
