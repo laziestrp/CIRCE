@@ -63,7 +63,7 @@ Multiple completed runs can be evaluated together with `--runs RUN1 RUN2 ...`. E
 
 ## Outputs
 
-Inference preserves the original prompt/output IDs, response text, scoring configuration, and component scores. `--save-features` additionally exports response-pooled vectors, not full per-token activations. Evaluation exports correctness labels, ranking metrics, and supported confidence intervals.
+Inference preserves the original prompt/output IDs, response text, scoring configuration, scoring device/backend, and component scores. `--save-features` additionally exports response-pooled vectors, not full per-token activations. Evaluation exports correctness labels, ranking metrics, and supported confidence intervals.
 
 Original responses are retained even if a numerical check fails. Incomplete runs cannot enter full evaluation. Each command requires a new output directory and does not overwrite existing results or regenerate saved answers automatically.
 
@@ -101,9 +101,11 @@ The collector preserves the conventions of the main implementation:
 * GS preserves the historical hidden-chain convention: its first contribution comes from the **first prompt position**, and subsequent cached steps use their last position. The chain contains the embedding/residual input, intermediate block outputs, and the final normalized state. GS and CIC therefore do not use identical first-step positions.
 * Every emitted token decision contributes, including the decision that emits an EOS/end-of-turn token. Prompts are unpadded. There is no reasoning-only or answer-only span mask.
 * NLL is the mean natural-log loss of the actual greedy token IDs over those same decisions. Raw-logit argmax IDs must exactly match the generated IDs.
-* Vector sums accumulate in FP32; pooling and structural arithmetic use float64. Refactoring arithmetic across NumPy/PyTorch backends may introduce floating-point roundoff.
+* Vector sums accumulate in FP32; pooling, q construction, and structural arithmetic use float64 tensors on the model device. Refactoring arithmetic across NumPy/PyTorch backends may introduce floating-point roundoff.
 
 Changing these conventions creates a different scoring protocol. The score does not establish that every reasoning step is true.
+
+During CUDA inference, pooled components, q, CIC, GS, and fusion arithmetic stay on the GPU. Ordinary scoring does not export feature arrays to CPU; only final scalar results/checks and generated IDs/text are transferred for normal output. Explicit feature export copies pooled tensors to host arrays. `--device cpu` runs the same tensor path on CPU. No measured speedup is implied by device residency alone.
 
 ## Python interfaces
 
@@ -117,6 +119,8 @@ score = fuse(cic, gs, mean_nll, weights=weights)
 ```
 
 Scalar inputs return a float; broadcast-compatible NumPy arrays return an array. For already pooled component matrices, call `score_features(attention, ffn, counterfactual_ffn, hidden_chain, mean_nll, weights=weights)`. Component matrices have shape `[layers, hidden_size]`; `hidden_chain` has shape `[layers+1, hidden_size]`. Inputs must come from one response using the conventions above.
+
+For device-resident tensors, use `score_tensors(attention, conditioned_ffn, hidden_chain, mean_nll, weights=weights)`, where `conditioned_ffn` is q and `mean_nll` is a scalar tensor. All inputs must be floating-point tensors on the same device; the function does not move features to CPU for arithmetic.
 
 ### Collect during greedy generation
 
@@ -144,7 +148,7 @@ print(result.scores.score, result.scores.cic, result.scores.gs, result.scores.me
 
 `GreedyResult` contains the original output IDs, decoded text, EOS termination flag, and `CirceScore`. A length-limited response remains in the returned result with `terminated=False`; the library does not judge answer correctness. The prompt plus requested token budget must fit the model context.
 
-For integration into an existing greedy generation call, use `with CirceCapture(model, weights=weights) as capture: ...`, then call `capture.finalize(generated_ids)`. Exclude prompt IDs from `generated_ids`. Use cached generation with a single unpadded prompt and neutral logits processing. The capture validates exact raw-greedy alignment, so a sampled or processed token sequence can raise an error. Hooks are removed on normal completion and on exceptions. Each capture is single-use. `capture.pooled_features()` exposes the within-response pooled vectors for inspection.
+For integration into an existing greedy generation call, use `with CirceCapture(model, weights=weights) as capture: ...`, then call `capture.finalize(generated_ids)`. Exclude prompt IDs from `generated_ids`. Use cached generation with a single unpadded prompt and neutral logits processing. The capture validates exact raw-greedy alignment, so a sampled or processed token sequence can raise an error. Hooks are removed on normal completion and on exceptions. Each capture is single-use. `capture.pooled_tensors()` exposes device-resident pooled vectors; `capture.pooled_features()` explicitly exports them as host arrays for inspection or saving.
 
 ## Implementation checks
 
@@ -157,5 +161,7 @@ python -m unittest discover -s tests -v
 ```
 
 The integration tests create a small local Transformer checkpoint and tokenizer in a temporary directory, load them through the same model loader, then run prompts, inference, feature export, and evaluation. They use synthetic test-only parameter configurations, not experimental settings, and perform no model/data downloads. Inference tests are explicitly skipped if the inference dependencies are unavailable.
+
+Tensor-backend checks compare component scores against the NumPy reference and exercise the no-feature-export path. CUDA-specific tests run only when CUDA is available; a skipped test does not establish GPU execution or a performance result.
 
 Source code is provided under Apache-2.0; see `LICENSE` and `NOTICE`. Checkpoint and dependency licenses apply separately.

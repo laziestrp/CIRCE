@@ -48,6 +48,8 @@ Replace each placeholder locally with a numeric α or λ in `[0, 1]`. CIRCE uses
 
 Run metadata records the CIC, GS, and likelihood coefficients used for scoring. Evaluation recomputes CIRCE with those recorded coefficients and checks consistency across runs. Runtime artifacts can disclose the supplied values and are not intended to be committed. Reproducing a particular coefficient configuration requires its corresponding values.
 
+Run metadata also records the tensor scoring backend and model device. In CUDA inference, q and component scoring remain on the GPU; host feature arrays are created only for explicit export. The CPU NumPy interface remains available for independently checking exported pooled features, with possible backend floating-point roundoff.
+
 ## Answer correctness policies
 
 The policy is recorded in evaluation outputs and is never selected by performance.

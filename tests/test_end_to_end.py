@@ -70,6 +70,9 @@ class PipelineTests(unittest.TestCase):
         from circe.scoring import score_features
 
         output = self.run_cli()
+        run = json.loads((output / "run.json").read_text())
+        self.assertEqual(run["scoring_backend"], "torch")
+        self.assertEqual(run["scoring_device"], "cpu")
         for index in range(2):
             record = json.loads((output / "records" / f"{index:08d}.json").read_text())
             generation = json.loads((output / "generations" / f"{index:08d}.json").read_text())
