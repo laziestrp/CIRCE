@@ -96,7 +96,3 @@ If you find this work useful, please cite:
   url={https://arxiv.org/abs/2611.07948}
 }
 ```
-
-## License
-
-Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

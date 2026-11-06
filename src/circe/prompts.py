@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
+# Adapted from https://github.com/Alsace08/Chain-of-Embedding.
+# Modified for CIRCE input interfaces; attribution and license in legacy_parsing.py.
 """Dataset prompts used by the main experiments and explicit prompt overrides."""
 from .data import Example
 
