@@ -1,54 +1,84 @@
-# CIRCE
+# CIRCE: Training-Free LLM Self-Evaluation via Component Interaction Consistency
 
-CIRCE is a training-free method for estimating the correctness of a language-model response. It combines attention-conditioned FFN interaction (CIC), residual-stream geometry (GS), and mean token negative log-likelihood (NLL) into a confidence score. Higher CIRCE scores indicate greater estimated correctness.
+This repository provides the Python implementation of [CIRCE](https://arxiv.org/abs/2611.07948), a training-free method for estimating the correctness of LLM responses. CIRCE combines Component Interaction Consistency (CIC), Representation Geometry (RG), and Likelihood Confidence (LC) into a unified score, using internal attention/FFN signals, hidden states, and token probabilities without reference answers or repeated sampling.
 
-## Overview
+![CIRCE framework](assets/circe_framework.png)
 
-The model generates a response while CIRCE collects attention, FFN, and residual representations. These representations and the response likelihood provide the components used to calculate CIRCE with a given set of weights. During CUDA inference, component collection and score computation remain on the GPU.
+## Requirements
 
-## Installation
+- Python >= 3.10
+- PyTorch >= 2.5, < 2.7
+- Transformers == 4.57.1
+- NumPy >= 1.24, < 3
+- A CUDA-capable GPU for inference
 
-Python 3.10 or newer is required.
+Install dependencies from the repository root:
 
 ```bash
-pip install ".[inference]"
+pip install -r requirements.txt
 ```
 
-Supported decoder families include Llama, Mistral, Qwen2, and Qwen2.5.
+Supported model families include Llama, Mistral, Qwen2, and Qwen2.5. Use a local Hugging Face checkpoint and a CUDA-enabled PyTorch installation.
+
+## Data
+
+The main benchmarks cover four domains. Download the datasets from their original project pages:
+
+| Domain | Datasets |
+| --- | --- |
+| Mathematics | [GSM8K](https://github.com/openai/grade-school-math), [MATH](https://github.com/hendrycks/math) |
+| Reasoning | [CommonsenseQA](https://huggingface.co/datasets/tau/commonsense_qa), [TheoremQA](https://github.com/wenhuchen/TheoremQA) |
+| Knowledge | [MMLU](https://github.com/hendrycks/test) |
+| Understanding | [Belebele](https://github.com/facebookresearch/belebele) |
+
+Prepare each dataset as a local JSONL file under `data/`, following the [data format](docs/DATA_FORMAT.md). For example, a GSM8K record has the form:
+
+```json
+{"id":"example-1","question":"What is 2 + 3?","gold":"5"}
+```
+
+Datasets and model checkpoints are not included in this repository.
 
 ## Usage
 
-Provide a local Hugging Face checkpoint and a JSONL dataset. Copy `weights.example.json` to `weights.json` and replace `xxx` with numeric values for α and λ.
+Run the following commands from the repository root. Set the model and data paths, then copy `weights.example.json` to `weights.json` and replace `xxx` with numeric values for α and λ.
 
-```bash
-python main.py \
-  --model-path ./checkpoints/local-model \
-  --data ./data/gsm8k.jsonl \
-  --dataset gsm8k \
-  --weights ./weights.json \
-  --output ./runs/inference \
-  --device cuda
+1. Generate responses and compute CIRCE scores:
 
-python evaluate.py --runs ./runs/inference --output ./runs/evaluation
-```
+   ```bash
+   python main.py \
+     --model-path ./checkpoints/local-model \
+     --data ./data/gsm8k.jsonl \
+     --dataset gsm8k \
+     --weights ./weights.json \
+     --output ./runs/model_gsm8k \
+     --device cuda
+   ```
 
-Evaluation reports accuracy, AUROC, correct-positive AP, and FPR95. See the [input and evaluation formats](docs/DATA_FORMAT.md) for supported data schemas and options.
+2. Evaluate the saved responses and scores:
 
-## CIRCE score
+   ```bash
+   python evaluate.py \
+     --runs ./runs/model_gsm8k \
+     --output ./runs/evaluation
+   ```
 
-CIC captures attention-conditioned FFN interactions, GS describes residual-stream geometry, and NLL measures response likelihood. CIRCE combines these components as:
+Evaluation reports accuracy, AUROC, correct-positive average precision (AP), and FPR95. Supply multiple run directories after `--runs` to evaluate several model/dataset runs together. Use a new output directory for each command.
 
-```text
-b(z) = 0.5 * (1 + z / (1 + abs(z)))
-S    = (1 - λ) * (α * b(CIC) + (1 - α) * b(GS)) + λ / (1 + NLL)
-```
+## Citation
 
-Here, α balances CIC and GS, and λ controls the likelihood contribution.
+If you find this work useful, please cite:
 
-## Testing
-
-```bash
-python -m unittest discover -s tests -v
+```bibtex
+@misc{miao2026circetrainingfreellmselfevaluation,
+  title={Circe: Training-Free LLM Self-Evaluation via Component Interaction Consistency},
+  author={Shuyi Miao and Zheng Li and Xu Xie and Linrui Xu and Fei Shen and Xiaoyu Du and Tat-Seng Chua},
+  year={2026},
+  eprint={2611.07948},
+  archivePrefix={arXiv},
+  primaryClass={cs.AI},
+  url={https://arxiv.org/abs/2611.07948}
+}
 ```
 
 ## License
