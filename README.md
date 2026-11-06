@@ -2,7 +2,7 @@
 
 This repository provides the Python implementation of [CIRCE](https://arxiv.org/abs/2611.07948), a training-free method for estimating the correctness of LLM responses. CIRCE combines Component Interaction Consistency (CIC), Representation Geometry (RG), and Likelihood Confidence (LC) into a unified score, using internal attention/FFN signals, hidden states, and token probabilities without reference answers or repeated sampling.
 
-![CIRCE framework](assets/circe_framework.png)
+![CIRCE framework](circe_framework.png)
 
 ## Requirements
 
@@ -15,7 +15,7 @@ This repository provides the Python implementation of [CIRCE](https://arxiv.org/
 Install dependencies from the repository root:
 
 ```bash
-pip install -r requirements.txt
+pip install ".[inference]"
 ```
 
 Supported model families include Llama, Mistral, Qwen2, and Qwen2.5. Use a local Hugging Face checkpoint and a CUDA-enabled PyTorch installation.
@@ -31,17 +31,29 @@ The main benchmarks cover four domains. Download the datasets from their origina
 | Knowledge | [MMLU](https://github.com/hendrycks/test) |
 | Understanding | [Belebele](https://github.com/facebookresearch/belebele) |
 
-Prepare each dataset as a local JSONL file under `data/`, following the [data format](docs/DATA_FORMAT.md). For example, a GSM8K record has the form:
+Prepare each dataset as a UTF-8 JSONL file under `data/`, with one question per line. Use `gsm8k`, `math`, `commonsenseqa`, `theoremqa`, `mmlu`, or `belebele` for `--dataset`.
+
+Each record contains a unique `id`, the `question`, and a reference answer in `gold` for evaluation. A GSM8K example is:
 
 ```json
 {"id":"example-1","question":"What is 2 + 3?","gold":"5"}
 ```
 
+For multiple-choice questions, provide all `options` in their original order and use an uppercase option letter for `gold`:
+
+```json
+{"id":"example-2","question":"Which number is even?","options":["1","2","3","5"],"gold":"B"}
+```
+
+- Add `passage` for reading-comprehension questions. Question text should not duplicate separately supplied passages or options.
+- For TheoremQA, also provide `answer_type`: `bool`, `integer`, `float`, `list of integer`, `list of float`, or `option`.
+- GSM8K's original `answer` field and CommonsenseQA's `choices` / `answerKey` fields are also accepted. Reference answers are optional for inference, but required for automatic evaluation.
+
 Datasets and model checkpoints are not included in this repository.
 
 ## Usage
 
-Run the following commands from the repository root. Set the model and data paths, then copy `weights.example.json` to `weights.json` and replace `xxx` with numeric values for α and λ.
+Run the following commands from the repository root. Set the model and data paths, then copy `weights.example.json` to `weights.json` and replace `xxx` with numeric values for α and λ, each in `[0, 1]`.
 
 1. Generate responses and compute CIRCE scores:
 
@@ -64,6 +76,10 @@ Run the following commands from the repository root. Set the model and data path
    ```
 
 Evaluation reports accuracy, AUROC, correct-positive average precision (AP), and FPR95. Supply multiple run directories after `--runs` to evaluate several model/dataset runs together. Use a new output directory for each command.
+
+Correct answers are positive; lower FPR95 is better. AP is average precision, and FPR95 uses the first observed threshold attaining at least 95% true-positive rate. Evaluation uses the final-answer policy by default; `--label-policy strict` requires the final `Answer: ...` line for GSM8K and multiple-choice questions. MATH and TheoremQA use their dataset-specific syntactic answer matching. Invalid or unfinished answers count as incorrect.
+
+Paired bootstrap intervals use 5,000 resamples by default. Runs of the same dataset must contain matching question IDs and references for cross-model evaluation. Undefined metrics or intervals without sufficient class coverage are reported as unavailable. Run `python main.py --help` or `python evaluate.py --help` for other options.
 
 ## Citation
 
