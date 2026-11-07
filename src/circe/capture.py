@@ -8,12 +8,7 @@ from .torch_scoring import score_tensors
 
 
 class CirceCapture:
-    """Capture one unpadded, cached, greedy response from a supported decoder.
-
-    Use as a context manager around model.generate(), then call finalize()
-    with the generated IDs, excluding the prompt. Each capture is single-use.
-    """
-
+    
     def __init__(self, model, *, weights: Weights, max_lag: int = 4):
         if model.config.model_type not in {"llama", "mistral", "qwen2"}:
             raise ValueError("supported decoder types: llama, mistral, qwen2")
