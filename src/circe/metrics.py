@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Tie-aware AUROC, correct-positive AP, and empirical FPR at 95% recall."""
 import numpy as np
 
 METRICS = ("auroc", "ap", "fpr95")
