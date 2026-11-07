@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Load an externally supplied local checkpoint for FP32/eager inference."""
 from pathlib import Path
 
 
