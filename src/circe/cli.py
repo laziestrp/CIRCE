@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Portable main-method command-line entry points."""
 import argparse
 import json
 from pathlib import Path
