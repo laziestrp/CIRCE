@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Frozen, score/gold-blind final answer extraction; no semantic judge."""
 import re
 from decimal import Decimal, InvalidOperation
 
