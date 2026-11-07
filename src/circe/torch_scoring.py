@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""CIRCE arithmetic on the device holding the pooled component tensors."""
 from __future__ import annotations
 
 import torch
@@ -10,13 +8,6 @@ from .scoring import EPS, CirceScore, Weights
 @torch.inference_mode()
 def score_tensors(attention, conditioned_ffn, hidden_chain, mean_nll, *, weights: Weights,
                   max_lag: int = 4) -> CirceScore:
-    """Score same-device pooled tensors without copying feature arrays to CPU.
-
-    attention and conditioned_ffn have shape [L, H]; hidden_chain is [L+1, H].
-    conditioned_ffn is the difference of separately pooled FFN and m0 vectors.
-    mean_nll is a scalar tensor. Only final scalar values and validation flags
-    are returned to the host, after all component and fusion arithmetic.
-    """
     tensors = (attention, conditioned_ffn, hidden_chain, mean_nll)
     if not all(isinstance(value, torch.Tensor) and value.is_floating_point() for value in tensors):
         raise TypeError("supply floating-point tensors for every scoring input")
