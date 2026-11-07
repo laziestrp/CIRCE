@@ -1,9 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Read-only generation hooks, extracted from the main method implementation.
-
-The counterfactual is an additional FFN evaluation. It never replaces an
-activation in the model's generation path. Hooks explicitly return None.
-"""
 from __future__ import annotations
 
 import torch
