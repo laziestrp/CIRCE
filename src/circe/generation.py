@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Library interface for scoring one greedy response from an already loaded model."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -33,14 +31,7 @@ def score_greedy(
     return_features: bool = False,
     on_generation=None,
 ) -> GreedyResult:
-    """Generate and score one unpadded prompt, preserving raw greedy alignment.
 
-    Caller supplies the model, tokenizer, and chat-template input IDs. No
-    checkpoint/data loading, label parsing, or filesystem I/O occurs. The
-    given weight set is used to compute CIRCE from the captured components.
-    on_generation(envelope), when supplied, runs before score finalization so
-    the caller can preserve original token IDs even if a numerical gate fails.
-    """
     if not isinstance(prompt_ids, torch.Tensor) or prompt_ids.ndim != 2:
         raise ValueError("prompt_ids must be a tensor with shape [1, prompt_length]")
     if prompt_ids.shape[0] != 1 or prompt_ids.shape[1] == 0:
