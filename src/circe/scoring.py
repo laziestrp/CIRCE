@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Response-local CIRCE arithmetic; extracted and reorganized for this release."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -15,7 +13,6 @@ EPS = 1e-12
 
 @dataclass(frozen=True)
 class Weights:
-    """Nonnegative fusion weights, in CIC / GS / likelihood order."""
 
     cic: float
     gs: float
@@ -31,7 +28,6 @@ class Weights:
 
     @classmethod
     def from_parameters(cls, *, alpha: float, lambda_: float) -> Weights:
-        """Convert caller-supplied alpha and lambda to component coefficients."""
         for value in (alpha, lambda_):
             if (not isinstance(value, Real) or isinstance(value, (bool, np.bool_))
                     or not math.isfinite(value) or not 0 <= value <= 1):
@@ -41,7 +37,6 @@ class Weights:
 
 
 def load_weights(path) -> Weights:
-    """Read the supplied weights used to compute the CIRCE score."""
     values = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(values, dict) or set(values) != {"alpha", "lambda"}:
         raise ValueError("weight configuration must contain exactly alpha and lambda")
@@ -50,7 +45,6 @@ def load_weights(path) -> Weights:
 
 @dataclass(frozen=True)
 class CirceScore:
-    """Higher score means greater estimated correctness, not a probability."""
 
     score: float
     cic: float
@@ -67,14 +61,12 @@ def _finite(value, name):
 
 
 def bounded(value):
-    """b(z) = (1 + z / (1 + |z|)) / 2; no statistics from other responses."""
     z = _finite(value, "value")
     result = 0.5 * (1.0 + z / (1.0 + np.abs(z)))
     return float(result) if result.ndim == 0 else result
 
 
 def fuse(cic, gs, mean_nll, weights: Weights):
-    """Compute CIRCE from component arrays and the given weight set."""
     nll = _finite(mean_nll, "mean_nll")
     if np.any(nll < 0):
         raise ValueError("mean_nll must be nonnegative")
@@ -97,12 +89,6 @@ def score_features(
     weights: Weights,
     max_lag: int = 4,
 ) -> CirceScore:
-    """Score pooled features from one response.
-
-    Component matrices have shape [L, H]; hidden_chain has shape [L+1, H].
-    Pool over decisions BEFORE normalizing vectors or computing cosines.
-    Preserve the collection positions described in the README.
-    """
     a = _finite(attention, "attention")
     m = _finite(ffn, "ffn")
     m0 = _finite(counterfactual_ffn, "counterfactual_ffn")
