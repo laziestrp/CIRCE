@@ -44,7 +44,6 @@ def task_text(example: Example):
 
 
 def build_prompt(example: Example):
-    """Gold labels never enter prompts; an explicit prompt is used verbatim."""
     if example.prompt is not None:
         return example.prompt
     template = DATASET_PROMPTS[example.dataset]
