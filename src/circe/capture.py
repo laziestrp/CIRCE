@@ -144,7 +144,6 @@ class CirceCapture:
         return None
 
     def pooled_tensors(self):
-        """Return pooled float64 tensors on the model device, including q."""
         if self.count == 0 or any(c != self.count for c in self.layer_counts):
             raise ValueError("incomplete token/layer capture")
         v = (self.sums.double() / self.count).detach()
@@ -158,7 +157,6 @@ class CirceCapture:
         }
 
     def pooled_features(self):
-        """Explicit host export for inspection or saving; not used for scoring."""
         features = self.pooled_tensors()
         return {key: float(value.cpu()) if key == "mean_nll" else value.cpu().numpy()
                 for key, value in features.items()}
