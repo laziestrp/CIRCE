@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Deterministic answer correctness labels, separate from feature extraction."""
 from decimal import Decimal, InvalidOperation
 import re
 
@@ -12,7 +10,6 @@ POLICIES = ("final", "strict", "legacy")
 
 
 def choice_labels(text, gold, choices, terminated):
-    """Preserve the main paired experiment's final-option and strict rules."""
     lines = [s.strip() for s in str(text).splitlines() if s.strip()]
     last = lines[-1] if lines else ""
     valid = "".join(choices)
