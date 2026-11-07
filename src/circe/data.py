@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Local JSONL input adapter; benchmark files are supplied by the caller."""
 from __future__ import annotations
 
 from dataclasses import dataclass
