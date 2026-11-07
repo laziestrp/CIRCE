@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Model inference -> attention/FFN extraction -> immutable per-example artifacts."""
 from __future__ import annotations
 
 from dataclasses import asdict
