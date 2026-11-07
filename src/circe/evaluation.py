@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: Apache-2.0
-"""Answer accuracy and paired correctness-detection metrics for saved runs."""
 from __future__ import annotations
 
 import csv
